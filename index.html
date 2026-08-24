@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Task Queue</title>
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAADt0lEQVR4nO3dPa4bZRSA4QliBalSpKJkD3QpKbIWCtqIloK1UKSkYw+UrIXCkmXdHyfxa893Bj1P62KO9L0+Y19d22/evnu/wa2+Wz0AxyYgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASARE8v3qAe7g5z//uvLo548fdpvkuX/++OnKoz/+8vdukzzIm7fv3q+e4RbXo3nNPjFdj+Y1B43pYAHd1s1zjyjptm6eO1ZJhwnoXulculdG90rn0lEyOkBAj0jnUsnoEelcmp/R9Hdhj66nXOLR9exziWh0QDvUc/OFdjva4Q0NvYXtls4TX3M7W3WiM29nEzfQqnq+5tIL98HMVTQuoIX1fHGA5Ue4fIDnZgW0vJ6TF8cYcnhDxjibFRCHMyigIevn5Mkwo573o4aZEtCoek7OI406sJM5I414Gz+wnrPf//1t9QivmvDGfsoG4qDWB2T93GzCjWx9QBza4oCsn2j5ErKBSAREsjIg96+7WHsXs4FIBEQiIJJlAXkBdEcLXwbZQCQCIhEQiYBIBEQiIBIBkQiIREAkywJa+81z1/36w6fVI3ybhf9dbwORCIhEQCQrA/Iy6C7WfrzQBiIREMnigNzFouUfj7eBSNYHZAndbPn62SYExKGNCGjsEvr88cOEZ/mLhgw2IqBtZEPnkYYc1aU5I00JaBvW0JNh5hzYNmyYQQFxRLMCGrKEXhxjyPN+yBhnswLaBjR0ZYDlh7d8gOfGBbQtbeiLl154hAPr2YZ8ze9r9vz8/LdWu+fH0WemczJxA53ttopuuNBuhzq5nm14QNsuDd18iR2Odng92/Bb2CU/ujvTYQI68bPf0xwsoLPbStrnRdVtJR2rm7OjBnTpekxr/7B0PaaDRnPp/xAQC01/F8ZwAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCT/Aa6MyVLUr14jAAAAAElFTkSuQmCC">
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAADt0lEQVR4nO3dPa4bZRSA4QliBalSpKJkD3QpKbIWCtqIloK1UKSkYw+UrIXCkmXdHyfxa893Bj1P62KO9L0+Y19d22/evnu/wa2+Wz0AxyYgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASARE8v3qAe7g5z//uvLo548fdpvkuX/++OnKoz/+8vdukzzIm7fv3q+e4RbXo3nNPjFdj+Y1B43pYAHd1s1zjyjptm6eO1ZJhwnoXulculdG90rn0lEyOkBAj0jnUsnoEelcmp/R9Hdhj66nXOLR9exziWh0QDvUc/OFdjva4Q0NvYXtls4TX3M7W3WiM29nEzfQqnq+5tIL98HMVTQuoIX1fHGA5Ue4fIDnZgW0vJ6TF8cYcnhDxjibFRCHMyigIevn5Mkwo573o4aZEtCoek7OI406sJM5I414Gz+wnrPf//1t9QivmvDGfsoG4qDWB2T93GzCjWx9QBza4oCsn2j5ErKBSAREsjIg96+7WHsXs4FIBEQiIJJlAXkBdEcLXwbZQCQCIhEQiYBIBEQiIBIBkQiIREAkywJa+81z1/36w6fVI3ybhf9dbwORCIhEQCQrA/Iy6C7WfrzQBiIREMnigNzFouUfj7eBSNYHZAndbPn62SYExKGNCGjsEvr88cOEZ/mLhgw2IqBtZEPnkYYc1aU5I00JaBvW0JNh5hzYNmyYQQFxRLMCGrKEXhxjyPN+yBhnswLaBjR0ZYDlh7d8gOfGBbQtbeiLl154hAPr2YZ8ze9r9vz8/LdWu+fH0WemczJxA53ttopuuNBuhzq5nm14QNsuDd18iR2Odng92/Bb2CU/ujvTYQI68bPf0xwsoLPbStrnRdVtJR2rm7OjBnTpekxr/7B0PaaDRnPp/xAQC01/F8ZwAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCT/Aa6MyVLUr14jAAAAAElFTkSuQmCC">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Task Queue">
+<meta name="theme-color" content="#0F1417">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0F1417;
+    --surface: #171E23;
+    --surface-raised: #1D262C;
+    --ink: #E8EDEF;
+    --ink-dim: #93A0A8;
+    --ink-faint: #6E7B84;
+    --line: #26313A;
+    --infra: #5EC8D8;
+    --infra-soft: rgba(94, 200, 216, 0.12);
+    --dev: #E8A659;
+    --dev-soft: rgba(232, 166, 89, 0.12);
+    --radius-sm: 6px;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: contain;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(40px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+
+  .app { max-width: 920px; margin: 0 auto; }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  header h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  .clock {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-dim);
+    letter-spacing: 0.02em;
+  }
+
+  .error-banner {
+    display: none;
+    background: var(--dev-soft);
+    border: 1px solid var(--dev);
+    color: var(--dev);
+    font-size: 13px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 16px;
+  }
+  .error-banner.show { display: block; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+
+  .tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--ink-dim);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 13px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: transform 0.1s ease, background 0.15s ease;
+  }
+  .tab:active { transform: scale(0.97); }
+
+  .tab.active {
+    color: var(--ink);
+    border-color: var(--tab-accent, var(--line));
+    background: var(--surface-raised);
+  }
+  .tab[data-lane="infra"].active { --tab-accent: var(--infra); }
+  .tab[data-lane="developers"].active { --tab-accent: var(--dev); }
+
+  .tab .count-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: var(--surface);
+    color: var(--ink-dim);
+    padding: 1px 6px;
+    border-radius: 20px;
+  }
+  .tab.active .count-badge { color: var(--ink); }
+
+  .lanes { display: grid; grid-template-columns: 1fr; gap: 16px; }
+
+  .lane {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .lane-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    animation: pulse 2.6s ease-in-out infinite;
+  }
+  .dot.infra { background: var(--infra); }
+  .dot.developers { background: var(--dev); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.45; }
+  }
+
+  .lane-head h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 0;
+    flex: 1;
+  }
+
+  .lane-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-dim);
+    background: var(--surface-raised);
+    padding: 2px 8px;
+    border-radius: 20px;
+    transition: transform 0.18s ease, color 0.18s ease;
+    display: inline-block;
+  }
+  .lane-count.flash.infra { color: var(--infra); transform: scale(1.15); }
+  .lane-count.flash.developers { color: var(--dev); transform: scale(1.15); }
+
+  .add-row { display: flex; gap: 8px; margin-bottom: 14px; }
+
+  .add-row input {
+    flex: 1;
+    background: var(--surface-raised);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    padding: 12px 12px;
+    border-radius: var(--radius-sm);
+    min-width: 0;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .add-row input::placeholder { color: var(--ink-faint); }
+
+  .add-row input:focus-visible,
+  .tab:focus-visible,
+  .add-btn:focus-visible,
+  .done-btn:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+  }
+
+  .add-btn {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    background: transparent;
+    border: 1px solid;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform 0.1s ease, background 0.15s ease;
+  }
+  .add-btn:active { transform: scale(0.96); }
+  .add-btn.infra { border-color: var(--infra); color: var(--infra); }
+  .add-btn.infra:hover { background: var(--infra-soft); }
+  .add-btn.developers { border-color: var(--dev); color: var(--dev); }
+  .add-btn.developers:hover { background: var(--dev-soft); }
+
+  .task-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+
+  .task-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--line);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+  .task-row:last-child { border-bottom: none; }
+  .task-row.removing { opacity: 0; transform: translateX(10px); }
+  .task-row.removing .task-text { text-decoration: line-through; color: var(--ink-faint); }
+
+  .task-text { flex: 1; font-size: 14px; line-height: 1.4; word-break: break-word; }
+
+  .task-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+
+  .done-btn {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s ease, background 0.15s ease;
+  }
+  .done-btn:active { transform: scale(0.92); }
+  .done-btn.infra { border: 1px solid var(--infra); color: var(--infra); }
+  .done-btn.infra:hover { background: var(--infra); color: var(--bg); }
+  .done-btn.developers { border: 1px solid var(--dev); color: var(--dev); }
+  .done-btn.developers:hover { background: var(--dev); color: var(--bg); }
+
+  .empty { color: var(--ink-faint); font-size: 13px; padding: 16px 4px; text-align: center; }
+
+  @media (min-width: 720px) {
+    .tabs { display: none; }
+    .lanes { grid-template-columns: 1fr 1fr; }
+    .lane[data-inactive="true"] { display: flex; }
+  }
+  @media (max-width: 719px) {
+    .lane[data-inactive="true"] { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dot { animation: none; }
+    .task-row, .lane-count, .tab, .add-btn, .done-btn { transition: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Task Queue</h1>
+      <div class="clock" id="clock"></div>
+    </header>
+
+    <div class="error-banner" id="errorBanner"></div>
+
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-lane="infra" type="button">
+        <span class="dot infra"></span> Infra <span class="count-badge" data-count="infra">0</span>
+      </button>
+      <button class="tab" data-lane="developers" type="button">
+        <span class="dot developers"></span> Developers <span class="count-badge" data-count="developers">0</span>
+      </button>
+    </div>
+
+    <div class="lanes" id="lanes">
+      <section class="lane" data-lane="infra">
+        <div class="lane-head">
+          <span class="dot infra"></span>
+          <h2>Infra</h2>
+          <span class="lane-count" data-count="infra">0</span>
+        </div>
+        <div class="add-row">
+          <input type="text" id="input-infra" placeholder="Add an infra task…" autocomplete="off" autocorrect="off" />
+          <button class="add-btn infra" id="addBtn-infra" type="button">Add</button>
+        </div>
+        <ul class="task-list" id="list-infra"><li class="empty">Loading…</li></ul>
+      </section>
+
+      <section class="lane" data-lane="developers" data-inactive="true">
+        <div class="lane-head">
+          <span class="dot developers"></span>
+          <h2>Developers</h2>
+          <span class="lane-count" data-count="developers">0</span>
+        </div>
+        <div class="add-row">
+          <input type="text" id="input-developers" placeholder="Add a developer task…" autocomplete="off" autocorrect="off" />
+          <button class="add-btn developers" id="addBtn-developers" type="button">Add</button>
+        </div>
+        <ul class="task-list" id="list-developers"><li class="empty">Loading…</li></ul>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'daily-tasks';
+    let tasks = [];
+    let activeLane = 'infra';
+    let lastCounts = { infra: 0, developers: 0 };
+
+    const CLAUDE_STORAGE = (typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function');
+
+    function withTimeout(promise, ms) {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
+      ]);
+    }
+
+    async function storageGet(key) {
+      if (CLAUDE_STORAGE) {
+        try {
+          const res = await withTimeout(window.storage.get(key, false), 2500);
+          return res ? res.value : null;
+        } catch (e) {
+          try { return localStorage.getItem(key); } catch (e2) { return null; }
+        }
+      }
+      try {
+        return localStorage.getItem(key);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    async function storageSet(key, value) {
+      if (CLAUDE_STORAGE) {
+        try {
+          const result = await withTimeout(window.storage.set(key, value, false), 2500);
+          return !!result;
+        } catch (e) {
+          try { localStorage.setItem(key, value); return true; } catch (e2) { return false; }
+        }
+      }
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function formatTime(iso) {
+      const d = new Date(iso);
+      return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function showError(msg) {
+      const banner = document.getElementById('errorBanner');
+      banner.textContent = msg;
+      banner.classList.add('show');
+    }
+
+    async function loadTasks() {
+      const raw = await storageGet(STORAGE_KEY);
+      try {
+        tasks = raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        tasks = [];
+      }
+      render();
+    }
+
+    async function saveTasks() {
+      const ok = await storageSet(STORAGE_KEY, JSON.stringify(tasks));
+      if (!ok) showError('Could not save changes. They may not persist.');
+    }
+
+    function addTask(category, text) {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      tasks.push({
+        id: 'task_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        category: category,
+        text: trimmed,
+        createdAt: new Date().toISOString()
+      });
+      saveTasks();
+      render();
+    }
+
+    function removeTask(id) {
+      const row = document.querySelector('[data-id="' + id + '"]');
+      if (row) {
+        row.classList.add('removing');
+        setTimeout(() => {
+          tasks = tasks.filter(t => t.id !== id);
+          saveTasks();
+          render();
+        }, 200);
+      } else {
+        tasks = tasks.filter(t => t.id !== id);
+        saveTasks();
+        render();
+      }
+    }
+
+    function render() {
+      ['infra', 'developers'].forEach(cat => {
+        const items = tasks
+          .filter(t => t.category === cat)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        document.querySelectorAll('[data-count="' + cat + '"]').forEach(el => {
+          el.textContent = items.length;
+        });
+
+        if (items.length !== lastCounts[cat]) {
+          document.querySelectorAll('.lane-count[data-count="' + cat + '"]').forEach(el => {
+            el.classList.add('flash', cat);
+            setTimeout(() => el.classList.remove('flash', cat), 300);
+          });
+          lastCounts[cat] = items.length;
+        }
+
+        const list = document.getElementById('list-' + cat);
+        if (items.length === 0) {
+          list.innerHTML = '<li class="empty">Nothing pending in ' + (cat === 'infra' ? 'Infra' : 'Developers') + '.</li>';
+          return;
+        }
+
+        list.innerHTML = items.map(t =>
+          '<li class="task-row" data-id="' + t.id + '">' +
+            '<div class="task-text">' + escapeHtml(t.text) + '</div>' +
+            '<div class="task-meta">' + formatTime(t.createdAt) + '</div>' +
+            '<button class="done-btn ' + cat + '" data-id="' + t.id + '" aria-label="Mark done" type="button">✓</button>' +
+          '</li>'
+        ).join('');
+      });
+
+      document.querySelectorAll('.done-btn').forEach(btn => {
+        btn.onclick = () => removeTask(btn.dataset.id);
+      });
+    }
+
+    function setActiveLane(lane) {
+      activeLane = lane;
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.lane === lane);
+      });
+      document.querySelectorAll('.lane').forEach(section => {
+        section.dataset.inactive = section.dataset.lane === lane ? 'false' : 'true';
+      });
+    }
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => setActiveLane(tab.dataset.lane));
+    });
+
+    ['infra', 'developers'].forEach(cat => {
+      const input = document.getElementById('input-' + cat);
+      const btn = document.getElementById('addBtn-' + cat);
+      const submit = () => {
+        addTask(cat, input.value);
+        input.value = '';
+        input.focus();
+      };
+      btn.addEventListener('click', submit);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') submit();
+      });
+    });
+
+    function updateClock() {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+      const timeStr = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('clock').textContent = dateStr + ' · ' + timeStr;
+    }
+    updateClock();
+    setInterval(updateClock, 30000);
+
+    loadTasks();
+  </script>
+</body>
+</html>
