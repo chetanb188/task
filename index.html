@@ -199,7 +199,8 @@
   .add-row input:focus-visible,
   .tab:focus-visible,
   .add-btn:focus-visible,
-  .done-btn:focus-visible {
+  .done-btn:focus-visible,
+  .delete-btn:focus-visible {
     outline: 2px solid var(--ink);
     outline-offset: 2px;
   }
@@ -237,6 +238,8 @@
   .task-row.removing { opacity: 0; transform: translateX(10px); }
   .task-row.removing .task-text { text-decoration: line-through; color: var(--ink-faint); }
 
+  .task-row.done .task-text { text-decoration: line-through; color: var(--ink-faint); }
+
   .task-text { flex: 1; font-size: 14px; line-height: 1.4; word-break: break-word; }
 
   .task-meta {
@@ -265,6 +268,27 @@
   .done-btn.infra:hover { background: var(--infra); color: var(--bg); }
   .done-btn.developers { border: 1px solid var(--dev); color: var(--dev); }
   .done-btn.developers:hover { background: var(--dev); color: var(--bg); }
+  .done-btn.checked.infra { background: var(--infra); color: var(--bg); }
+  .done-btn.checked.developers { background: var(--dev); color: var(--bg); }
+
+  .delete-btn {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink-faint);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s ease, background 0.15s ease, color 0.15s ease;
+  }
+  .delete-btn:active { transform: scale(0.92); }
+  .delete-btn:hover { background: #E85D5D; border-color: #E85D5D; color: var(--bg); }
 
   .empty { color: var(--ink-faint); font-size: 13px; padding: 16px 4px; text-align: center; }
 
@@ -278,7 +302,7 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .dot { animation: none; }
-    .task-row, .lane-count, .tab, .add-btn, .done-btn { transition: none; }
+    .task-row, .lane-count, .tab, .add-btn, .done-btn, .delete-btn { transition: none; }
   }
 </style>
 </head>
@@ -416,8 +440,17 @@
         id: 'task_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
         category: category,
         text: trimmed,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        done: false
       });
+      saveTasks();
+      render();
+    }
+
+    function toggleDone(id) {
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+      task.done = !task.done;
       saveTasks();
       render();
     }
@@ -463,15 +496,19 @@
         }
 
         list.innerHTML = items.map(t =>
-          '<li class="task-row" data-id="' + t.id + '">' +
+          '<li class="task-row' + (t.done ? ' done' : '') + '" data-id="' + t.id + '">' +
             '<div class="task-text">' + escapeHtml(t.text) + '</div>' +
             '<div class="task-meta">' + formatTime(t.createdAt) + '</div>' +
-            '<button class="done-btn ' + cat + '" data-id="' + t.id + '" aria-label="Mark done" type="button">✓</button>' +
+            '<button class="done-btn ' + cat + (t.done ? ' checked' : '') + '" data-id="' + t.id + '" aria-label="Mark done" type="button">✓</button>' +
+            '<button class="delete-btn" data-id="' + t.id + '" aria-label="Delete task" type="button">✕</button>' +
           '</li>'
         ).join('');
       });
 
       document.querySelectorAll('.done-btn').forEach(btn => {
+        btn.onclick = () => toggleDone(btn.dataset.id);
+      });
+      document.querySelectorAll('.delete-btn').forEach(btn => {
         btn.onclick = () => removeTask(btn.dataset.id);
       });
     }
@@ -517,3 +554,4 @@
   </script>
 </body>
 </html>
+
