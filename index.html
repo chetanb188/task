@@ -438,6 +438,73 @@
 
   .empty { color: var(--ink-faint); font-size: 13px; padding: 20px 4px; text-align: center; font-style: italic; }
 
+  .img-upload-btn {
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--line);
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .img-upload-btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(123,97,255,0.4); }
+  .img-upload-btn:active { transform: scale(0.95); }
+  .img-upload-btn input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    font-size: 0;
+  }
+
+  .quick-img-preview {
+    width: 46px;
+    height: 46px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    border: 1px solid rgba(123,97,255,0.5);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .task-image {
+    width: 100%;
+    max-width: 200px;
+    border-radius: var(--radius-sm);
+    margin-top: 8px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    flex-basis: 100%;
+  }
+  .task-image:hover { transform: scale(1.02); }
+  .task-image:active { transform: scale(0.98); }
+
+  .img-lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    cursor: pointer;
+  }
+  .img-lightbox.show { display: flex; }
+  .img-lightbox img {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: var(--radius);
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  }
+
   @media (min-width: 720px) {
     .tabs { display: none; }
     .lanes { grid-template-columns: 1fr 1fr; }
@@ -515,6 +582,10 @@
 
     <div class="quick-add">
       <input type="text" id="quickInput" placeholder="Task lakho…" autocomplete="off" autocorrect="off" />
+      <label class="img-upload-btn" title="Photo attach karo">
+        📷
+        <input type="file" id="imgInput" accept="image/*" />
+      </label>
       <button class="add-btn" id="quickAddBtn" type="button">Add</button>
     </div>
 
@@ -557,6 +628,26 @@
     </div>
   </div>
 
+  <div class="img-lightbox" id="imgLightbox">
+    <img id="lightboxImg" src="" alt="Full size" />
+  </div>
+
+  <script>
+    (function() {
+      const lb = document.getElementById('imgLightbox');
+      const lbImg = document.getElementById('lightboxImg');
+      document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('task-image') || e.target.classList.contains('quick-img-preview')) {
+          lbImg.src = e.target.src;
+          lb.classList.add('show');
+        }
+      });
+      lb.addEventListener('click', function() {
+        lb.classList.remove('show');
+        lbImg.src = '';
+      });
+    })();
+  </script>
 
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
@@ -569,6 +660,7 @@
     let fbDb = null;
     let fbRef = null;
     let isRemoteUpdate = false;
+    let pendingImage = null;
 
     const CLAUDE_STORAGE = (typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function');
 
@@ -607,6 +699,49 @@
       b.textContent = msg;
       b.classList.add('show');
     }
+
+    function compressImage(file, maxW, quality) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = function() {
+            const canvas = document.createElement('canvas');
+            let w = img.width, h = img.height;
+            if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    document.getElementById('imgInput').addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        pendingImage = await compressImage(file, 600, 0.6);
+        const qa = document.querySelector('.quick-add');
+        const existing = qa.querySelector('.quick-img-preview');
+        if (existing) existing.remove();
+        const preview = document.createElement('img');
+        preview.className = 'quick-img-preview';
+        preview.src = pendingImage;
+        preview.title = 'Click to remove';
+        preview.onclick = function() { pendingImage = null; preview.remove(); };
+        qa.insertBefore(preview, document.getElementById('quickAddBtn'));
+      } catch (err) {
+        showError('Photo compress nathi thati.');
+      }
+      e.target.value = '';
+    });
 
     function setSyncStatus(state, label) {
       const dot = document.getElementById('syncDot');
@@ -682,14 +817,16 @@
       pushToFirebase();
     }
 
-    function addTask(category, text) {
+    function addTask(category, text, image) {
       const trimmed = text.trim();
       if (!trimmed) return;
-      tasks.push({
+      const task = {
         id: 'task_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
         category, text: trimmed, done: false,
         createdAt: new Date().toISOString()
-      });
+      };
+      if (image) task.image = image;
+      tasks.push(task);
       saveTasks();
       render();
     }
@@ -751,8 +888,12 @@
             '<button class="assign-btn developers" data-id="' + t.id + '" data-cat="developers" type="button">Dev</button>' +
           '</div>'
         : '<button class="done-btn ' + cat + (t.done ? ' checked' : '') + '" data-id="' + t.id + '" aria-label="Mark done" type="button">✓</button>';
+      const imgHtml = t.image
+        ? '<img class="task-image" src="' + t.image + '" alt="task photo" />'
+        : '';
       return '<li class="task-row' + (t.done ? ' done' : '') + '" data-id="' + t.id + '">' +
         '<div class="task-text' + (t.done ? ' done' : '') + '">' + escapeHtml(t.text) + '</div>' +
+        imgHtml +
         '<div class="task-meta">' + formatTime(t.createdAt) + '</div>' +
         '<div class="row-actions">' + assignHtml +
           '<button class="icon-btn edit-btn" data-id="' + t.id + '" aria-label="Edit" type="button">✏️</button>' +
@@ -810,7 +951,14 @@
 
     const quickInput = document.getElementById('quickInput');
     const quickBtn = document.getElementById('quickAddBtn');
-    const quickSubmit = () => { addTask('unassigned', quickInput.value); quickInput.value = ''; quickInput.focus(); };
+    const quickSubmit = () => {
+      addTask('unassigned', quickInput.value, pendingImage);
+      quickInput.value = '';
+      pendingImage = null;
+      const preview = document.querySelector('.quick-img-preview');
+      if (preview) preview.remove();
+      quickInput.focus();
+    };
     quickBtn.addEventListener('click', quickSubmit);
     quickInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') quickSubmit(); });
 
