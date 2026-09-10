@@ -995,7 +995,7 @@
     function setActiveLane(lane) {
       activeLane = lane;
       document.querySelectorAll('.tab').forEach(tab => { tab.classList.toggle('active', tab.dataset.lane === lane); });
-      document.querySelectorAll('.lane').forEach(section => { section.dataset.inactive = section.dataset.lane === lane ? 'false' : 'true'; });
+      document.querySelectorAll('.lane[data-lane]').forEach(section => { section.dataset.inactive = section.dataset.lane === lane ? 'false' : 'true'; });
     }
 
     document.querySelectorAll('.tab').forEach(tab => { tab.addEventListener('click', () => setActiveLane(tab.dataset.lane)); });
@@ -1038,6 +1038,7 @@
   </script>
 </body>
 </html>
+
 
 
 
