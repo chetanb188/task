@@ -486,6 +486,41 @@
   .task-image:hover { transform: scale(1.02); }
   .task-image:active { transform: scale(0.98); }
 
+  .task-file {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 260px;
+    margin-top: 8px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    background: rgba(123,97,255,0.12);
+    border: 1px solid rgba(123,97,255,0.35);
+    color: #c7b8ff;
+    font-size: 13px;
+    text-decoration: none;
+    flex-basis: 100%;
+    transition: background 0.2s ease;
+  }
+  .task-file:hover { background: rgba(123,97,255,0.2); }
+  .task-file:active { transform: scale(0.98); }
+
+  .file-preview {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 180px;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    background: rgba(123,97,255,0.12);
+    border: 1px solid rgba(123,97,255,0.4);
+    color: #c7b8ff;
+    font-size: 12px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
   .img-lightbox {
     display: none;
     position: fixed;
@@ -582,9 +617,9 @@
 
     <div class="quick-add">
       <input type="text" id="quickInput" placeholder="Task lakho…" autocomplete="off" autocorrect="off" />
-      <label class="img-upload-btn" title="Photo attach karo">
-        📷
-        <input type="file" id="imgInput" accept="image/*" />
+      <label class="img-upload-btn" title="File attach karo (photo, PDF, doc, etc.)">
+        📎
+        <input type="file" id="imgInput" />
       </label>
       <button class="img-upload-btn" id="pasteImgBtn" title="Clipboard thi photo paste karo" type="button">
         📋
@@ -663,6 +698,24 @@
     let fbDb = null;
     let fbRef = null;
     let pendingImage = null;
+    let pendingFile = null;
+
+    function formatBytes(bytes) {
+      if (!bytes) return '0 B';
+      const k = 1024;
+      const sizes = ['B', 'KB', 'MB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
 
     const CLAUDE_STORAGE = (typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function');
 
@@ -725,26 +778,56 @@
       });
     }
 
+    function clearPendingAttachment() {
+      pendingImage = null;
+      pendingFile = null;
+      const qa = document.querySelector('.quick-add');
+      const existingImg = qa.querySelector('.quick-img-preview');
+      const existingFile = qa.querySelector('.file-preview');
+      if (existingImg) existingImg.remove();
+      if (existingFile) existingFile.remove();
+    }
+
     function setPendingImage(dataUrl) {
+      clearPendingAttachment();
       pendingImage = dataUrl;
       const qa = document.querySelector('.quick-add');
-      const existing = qa.querySelector('.quick-img-preview');
-      if (existing) existing.remove();
       const preview = document.createElement('img');
       preview.className = 'quick-img-preview';
       preview.src = dataUrl;
       preview.title = 'Click to remove';
-      preview.onclick = function() { pendingImage = null; preview.remove(); };
+      preview.onclick = clearPendingAttachment;
+      qa.insertBefore(preview, document.getElementById('quickAddBtn'));
+    }
+
+    function setPendingFile(dataUrl, name, size) {
+      clearPendingAttachment();
+      pendingFile = { data: dataUrl, name, size };
+      const qa = document.querySelector('.quick-add');
+      const preview = document.createElement('span');
+      preview.className = 'file-preview';
+      preview.title = 'Click to remove';
+      preview.textContent = '📎 ' + name + ' (' + formatBytes(size) + ')';
+      preview.onclick = clearPendingAttachment;
       qa.insertBefore(preview, document.getElementById('quickAddBtn'));
     }
 
     document.getElementById('imgInput').addEventListener('change', async function(e) {
       const file = e.target.files[0];
       if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        showError('File 5MB thi motu che. Nanu file upload karo.');
+        e.target.value = '';
+        return;
+      }
       try {
-        setPendingImage(await compressImage(file, 600, 0.6));
+        if (file.type.startsWith('image/')) {
+          setPendingImage(await compressImage(file, 600, 0.6));
+        } else {
+          setPendingFile(await readFileAsDataUrl(file), file.name, file.size);
+        }
       } catch (err) {
-        showError('Photo compress nathi thati.');
+        showError('File upload nathi thati.');
       }
       e.target.value = '';
     });
@@ -775,6 +858,7 @@
       const file = item.getAsFile();
       if (!file) return;
       e.preventDefault();
+      if (file.size > 5 * 1024 * 1024) { showError('File 5MB thi motu che.'); return; }
       try {
         setPendingImage(await compressImage(file, 600, 0.6));
       } catch (err) {
@@ -863,7 +947,7 @@
       if (!ok) showError('Could not save changes locally.');
     }
 
-    function addTask(category, text, image) {
+    function addTask(category, text, attachment) {
       const trimmed = text.trim();
       if (!trimmed) return;
       const task = {
@@ -871,7 +955,13 @@
         category, text: trimmed, done: false,
         createdAt: new Date().toISOString()
       };
-      if (image) task.image = image;
+      if (attachment) {
+        if (typeof attachment === 'string') {
+          task.image = attachment;
+        } else if (attachment.data) {
+          task.file = attachment;
+        }
+      }
       tasks.push(task);
       saveTasks();
       syncTask(task.id);
@@ -939,12 +1029,14 @@
             '<button class="assign-btn developers" data-id="' + t.id + '" data-cat="developers" type="button">Dev</button>' +
           '</div>'
         : '<button class="done-btn ' + cat + (t.done ? ' checked' : '') + '" data-id="' + t.id + '" aria-label="Mark done" type="button">✓</button>';
-      const imgHtml = t.image
+      const attachHtml = t.image
         ? '<img class="task-image" src="' + t.image + '" alt="task photo" />'
+        : t.file
+        ? '<a class="task-file" href="' + t.file.data + '" download="' + escapeHtml(t.file.name) + '" target="_blank">📎 ' + escapeHtml(t.file.name) + ' (' + formatBytes(t.file.size) + ')</a>'
         : '';
       return '<li class="task-row' + (t.done ? ' done' : '') + '" data-id="' + t.id + '">' +
         '<div class="task-text' + (t.done ? ' done' : '') + '">' + escapeHtml(t.text) + '</div>' +
-        imgHtml +
+        attachHtml +
         '<div class="task-meta">' + formatTime(t.createdAt) + '</div>' +
         '<div class="row-actions">' + assignHtml +
           '<button class="icon-btn edit-btn" data-id="' + t.id + '" aria-label="Edit" type="button">✏️</button>' +
@@ -1003,11 +1095,9 @@
     const quickInput = document.getElementById('quickInput');
     const quickBtn = document.getElementById('quickAddBtn');
     const quickSubmit = () => {
-      addTask('unassigned', quickInput.value, pendingImage);
+      addTask('unassigned', quickInput.value, pendingImage || pendingFile);
       quickInput.value = '';
-      pendingImage = null;
-      const preview = document.querySelector('.quick-img-preview');
-      if (preview) preview.remove();
+      clearPendingAttachment();
       quickInput.focus();
     };
     quickBtn.addEventListener('click', quickSubmit);
@@ -1038,6 +1128,7 @@
   </script>
 </body>
 </html>
+
 
 
 
