@@ -506,6 +506,37 @@
   .task-file:hover { background: rgba(123,97,255,0.2); }
   .task-file:active { transform: scale(0.98); }
 
+  .task-pdf,
+  .task-video,
+  .task-audio {
+    width: 100%;
+    max-width: 260px;
+    margin-top: 8px;
+    border-radius: var(--radius-sm);
+    flex-basis: 100%;
+  }
+  .task-pdf { min-height: 220px; border: 1px solid rgba(123,97,255,0.3); background: rgba(0,0,0,0.25); }
+  .task-video { background: #000; }
+  .task-audio { height: 40px; }
+
+  .task-text-preview {
+    width: 100%;
+    max-width: 260px;
+    margin-top: 8px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    background: rgba(123,97,255,0.08);
+    border: 1px solid rgba(123,97,255,0.25);
+    color: #d4c8ff;
+    font-size: 12px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 160px;
+    overflow: auto;
+    flex-basis: 100%;
+  }
+
   .file-preview {
     display: inline-flex;
     align-items: center;
@@ -800,14 +831,31 @@
       qa.insertBefore(preview, document.getElementById('quickAddBtn'));
     }
 
-    function setPendingFile(dataUrl, name, size) {
+    function mimeFromDataUrl(dataUrl) {
+      return (dataUrl.match(/^data:([^;]+)/) || ['', ''])[1];
+    }
+
+    function filePreviewLabel(name, type) {
+      const map = { pdf: '📄', audio: '🎵', video: '🎬', txt: '📝', csv: '📊', doc: '📃', xls: '📊', ppt: '📽️' };
+      if (type.startsWith('image/')) return '🖼️';
+      if (type.startsWith('audio/')) return map.audio;
+      if (type.startsWith('video/')) return map.video;
+      if (type === 'application/pdf') return map.pdf;
+      if (type.includes('spreadsheet') || type.includes('excel') || name.match(/\.(xlsx?|csv)$/i)) return map.xls;
+      if (type.includes('word') || name.match(/\.(docx?)$/i)) return map.doc;
+      if (type.includes('powerpoint') || name.match(/\.(pptx?)$/i)) return map.ppt;
+      if (type.startsWith('text/') || name.match(/\.(txt|md|json)$/i)) return map.txt;
+      return '📎';
+    }
+
+    function setPendingFile(dataUrl, name, size, type) {
       clearPendingAttachment();
-      pendingFile = { data: dataUrl, name, size };
+      pendingFile = { data: dataUrl, name, size, type };
       const qa = document.querySelector('.quick-add');
       const preview = document.createElement('span');
       preview.className = 'file-preview';
       preview.title = 'Click to remove';
-      preview.textContent = '📎 ' + name + ' (' + formatBytes(size) + ')';
+      preview.textContent = filePreviewLabel(name, type || mimeFromDataUrl(dataUrl)) + ' ' + name + ' (' + formatBytes(size) + ')';
       preview.onclick = clearPendingAttachment;
       qa.insertBefore(preview, document.getElementById('quickAddBtn'));
     }
@@ -824,7 +872,7 @@
         if (file.type.startsWith('image/')) {
           setPendingImage(await compressImage(file, 600, 0.6));
         } else {
-          setPendingFile(await readFileAsDataUrl(file), file.name, file.size);
+          setPendingFile(await readFileAsDataUrl(file), file.name, file.size, file.type);
         }
       } catch (err) {
         showError('File upload nathi thati.');
@@ -1029,11 +1077,25 @@
             '<button class="assign-btn developers" data-id="' + t.id + '" data-cat="developers" type="button">Dev</button>' +
           '</div>'
         : '<button class="done-btn ' + cat + (t.done ? ' checked' : '') + '" data-id="' + t.id + '" aria-label="Mark done" type="button">✓</button>';
-      const attachHtml = t.image
-        ? '<img class="task-image" src="' + t.image + '" alt="task photo" />'
-        : t.file
-        ? '<a class="task-file" href="' + t.file.data + '" download="' + escapeHtml(t.file.name) + '" target="_blank">📎 ' + escapeHtml(t.file.name) + ' (' + formatBytes(t.file.size) + ')</a>'
-        : '';
+      const attachHtml = (function() {
+        if (t.image) return '<img class="task-image" src="' + t.image + '" alt="task photo" />';
+        if (!t.file) return '';
+        const f = t.file, type = f.type || mimeFromDataUrl(f.data), name = f.name || 'file';
+        if (type.startsWith('image/')) return '<img class="task-image" src="' + f.data + '" alt="' + escapeHtml(name) + '" />';
+        if (type === 'application/pdf') return '<embed class="task-pdf" src="' + f.data + '" type="application/pdf" width="100%" height="220" />';
+        if (type.startsWith('video/')) return '<video class="task-video" src="' + f.data + '" controls width="100%" preload="metadata"></video>';
+        if (type.startsWith('audio/')) return '<audio class="task-audio" src="' + f.data + '" controls preload="metadata"></audio>';
+        if (type.startsWith('text/') || name.match(/\.(txt|md|csv|json|log)$/i)) {
+          try {
+            const raw = atob(f.data.split(',')[1] || '');
+            const snippet = escapeHtml(raw.slice(0, 400));
+            return '<pre class="task-text-preview">' + snippet + (raw.length > 400 ? '\n…' : '') + '</pre>';
+          } catch (e) {
+            return '<a class="task-file" href="' + f.data + '" download="' + escapeHtml(name) + '" target="_blank">' + filePreviewLabel(name, type) + ' ' + escapeHtml(name) + ' (' + formatBytes(f.size) + ')</a>';
+          }
+        }
+        return '<a class="task-file" href="' + f.data + '" download="' + escapeHtml(name) + '" target="_blank">' + filePreviewLabel(name, type) + ' ' + escapeHtml(name) + ' (' + formatBytes(f.size) + ')</a>';
+      })();
       return '<li class="task-row' + (t.done ? ' done' : '') + '" data-id="' + t.id + '">' +
         '<div class="task-text' + (t.done ? ' done' : '') + '">' + escapeHtml(t.text) + '</div>' +
         attachHtml +
