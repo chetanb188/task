@@ -659,7 +659,6 @@
     let editingId = null;
     let fbDb = null;
     let fbRef = null;
-    let isRemoteUpdate = false;
     let pendingImage = null;
 
     const CLAUDE_STORAGE = (typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function');
@@ -765,15 +764,15 @@
 
         fbRef.on('value', (snapshot) => {
           const remote = snapshot.val();
-          if (remote && Array.isArray(remote)) {
-            isRemoteUpdate = true;
-            tasks = remote;
-            storageSet(STORAGE_KEY, JSON.stringify(tasks));
-            render();
-            isRemoteUpdate = false;
-          } else if (!remote) {
-            pushToFirebase();
+          if (Array.isArray(remote)) {
+            const obj = {};
+            remote.forEach(t => { if (t && t.id) obj[t.id] = t; });
+            fbRef.set(obj);
+            return;
           }
+          tasks = remote ? Object.keys(remote).map(k => remote[k]).filter(Boolean) : [];
+          storageSet(STORAGE_KEY, JSON.stringify(tasks));
+          render();
           setSyncStatus('connected', 'Live');
         }, (err) => {
           console.error('Firebase read error:', err);
@@ -796,12 +795,20 @@
       }
     }
 
-    function pushToFirebase() {
-      if (fbRef && !isRemoteUpdate) {
-        fbRef.set(tasks).catch(err => {
-          console.error('Firebase write error:', err);
-        });
-      }
+    function syncTask(id) {
+      if (!fbRef) return;
+      const t = tasks.find(x => x.id === id);
+      if (!t) return;
+      fbRef.child(id).set(t).catch(err => {
+        console.error('Firebase write error:', err);
+      });
+    }
+
+    function removeTaskRemote(id) {
+      if (!fbRef) return;
+      fbRef.child(id).remove().catch(err => {
+        console.error('Firebase write error:', err);
+      });
     }
 
     // --- Tasks ---
@@ -814,7 +821,6 @@
     async function saveTasks() {
       const ok = await storageSet(STORAGE_KEY, JSON.stringify(tasks));
       if (!ok) showError('Could not save changes locally.');
-      pushToFirebase();
     }
 
     function addTask(category, text, image) {
@@ -828,6 +834,7 @@
       if (image) task.image = image;
       tasks.push(task);
       saveTasks();
+      syncTask(task.id);
       render();
     }
 
@@ -836,6 +843,7 @@
       if (!t) return;
       t.category = category;
       saveTasks();
+      syncTask(id);
       render();
     }
 
@@ -844,6 +852,7 @@
       if (!t) return;
       t.done = !t.done;
       saveTasks();
+      syncTask(id);
       render();
     }
 
@@ -856,6 +865,7 @@
       if (t) t.text = trimmed;
       editingId = null;
       saveTasks();
+      syncTask(id);
       render();
     }
 
@@ -865,10 +875,11 @@
       const row = document.querySelector('[data-id="' + id + '"]');
       if (row) {
         row.classList.add('removing');
-        setTimeout(() => { tasks = tasks.filter(t => t.id !== id); saveTasks(); render(); }, 250);
+        setTimeout(() => { tasks = tasks.filter(t => t.id !== id); saveTasks(); removeTaskRemote(id); render(); }, 250);
       } else {
         tasks = tasks.filter(t => t.id !== id);
         saveTasks();
+        removeTaskRemote(id);
         render();
       }
     }
@@ -986,6 +997,8 @@
     })();
   </script>
 </body>
+</html>
+
 </html>
 
 
