@@ -586,6 +586,9 @@
         📷
         <input type="file" id="imgInput" accept="image/*" />
       </label>
+      <button class="img-upload-btn" id="pasteImgBtn" title="Clipboard thi photo paste karo" type="button">
+        📋
+      </button>
       <button class="add-btn" id="quickAddBtn" type="button">Add</button>
     </div>
 
@@ -722,24 +725,61 @@
       });
     }
 
+    function setPendingImage(dataUrl) {
+      pendingImage = dataUrl;
+      const qa = document.querySelector('.quick-add');
+      const existing = qa.querySelector('.quick-img-preview');
+      if (existing) existing.remove();
+      const preview = document.createElement('img');
+      preview.className = 'quick-img-preview';
+      preview.src = dataUrl;
+      preview.title = 'Click to remove';
+      preview.onclick = function() { pendingImage = null; preview.remove(); };
+      qa.insertBefore(preview, document.getElementById('quickAddBtn'));
+    }
+
     document.getElementById('imgInput').addEventListener('change', async function(e) {
       const file = e.target.files[0];
       if (!file) return;
       try {
-        pendingImage = await compressImage(file, 600, 0.6);
-        const qa = document.querySelector('.quick-add');
-        const existing = qa.querySelector('.quick-img-preview');
-        if (existing) existing.remove();
-        const preview = document.createElement('img');
-        preview.className = 'quick-img-preview';
-        preview.src = pendingImage;
-        preview.title = 'Click to remove';
-        preview.onclick = function() { pendingImage = null; preview.remove(); };
-        qa.insertBefore(preview, document.getElementById('quickAddBtn'));
+        setPendingImage(await compressImage(file, 600, 0.6));
       } catch (err) {
         showError('Photo compress nathi thati.');
       }
       e.target.value = '';
+    });
+
+    document.getElementById('pasteImgBtn').addEventListener('click', async function() {
+      if (!navigator.clipboard || !navigator.clipboard.read) {
+        showError('Aa browser clipboard access aapi nathi. Photo save kari ne 📷 thi select karo.');
+        return;
+      }
+      try {
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+          const type = item.types.find(t => t.startsWith('image/'));
+          if (!type) continue;
+          const blob = await item.getType(type);
+          setPendingImage(await compressImage(blob, 600, 0.6));
+          return;
+        }
+        showError('Clipboard ma photo nathi. Pehla WhatsApp ma photo Copy karo.');
+      } catch (err) {
+        showError('Clipboard access nathi malyo. Photo save kari ne 📷 thi select karo.');
+      }
+    });
+
+    document.addEventListener('paste', async function(e) {
+      const item = Array.from(e.clipboardData?.items || []).find(i => i.type.startsWith('image/'));
+      if (!item) return;
+      const file = item.getAsFile();
+      if (!file) return;
+      e.preventDefault();
+      try {
+        setPendingImage(await compressImage(file, 600, 0.6));
+      } catch (err) {
+        showError('Photo compress nathi thati.');
+      }
     });
 
     function setSyncStatus(state, label) {
@@ -999,7 +1039,6 @@
 </body>
 </html>
 
-</html>
 
 
 
