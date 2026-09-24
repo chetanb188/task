@@ -222,6 +222,10 @@
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     transition: border-color 0.3s ease;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      0 4px 0 rgba(0,0,0,0.22),
+      0 10px 24px rgba(0,0,0,0.25);
   }
   .lane[data-lane="infra"]:hover { border-color: rgba(0,212,170,0.2); }
   .lane[data-lane="developers"]:hover { border-color: rgba(255,138,92,0.2); }
@@ -279,10 +283,17 @@
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     transition: border-color 0.25s ease;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      0 4px 0 rgba(0,0,0,0.22),
+      0 10px 24px rgba(0,0,0,0.25);
   }
   .quick-add:focus-within {
     border-color: rgba(123,97,255,0.4);
-    box-shadow: 0 0 24px rgba(123,97,255,0.1);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      0 4px 0 rgba(0,0,0,0.22),
+      0 0 24px rgba(123,97,255,0.12);
   }
 
   .quick-add input {
@@ -319,9 +330,10 @@
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 3px 0 rgba(0,0,0,0.30), 0 6px 14px rgba(123,97,255,0.20);
   }
-  .add-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(123,97,255,0.3); }
-  .add-btn:active { transform: scale(0.96); }
+  .add-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 0 rgba(0,0,0,0.30), 0 8px 18px rgba(123,97,255,0.30); }
+  .add-btn:active { transform: translateY(1px) scale(0.98); box-shadow: 0 1px 0 rgba(0,0,0,0.30), 0 3px 8px rgba(123,97,255,0.20); }
 
   .unassigned-lane { margin-bottom: 18px; }
   .assign-row { display: flex; gap: 6px; }
@@ -344,19 +356,56 @@
   .assign-btn.developers:hover { background: var(--dev); color: var(--bg); box-shadow: 0 0 12px var(--dev-glow); }
   .assign-btn:active { transform: scale(0.95); }
 
-  .task-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .task-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 
   .task-row {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 10px;
-    padding: 12px 8px;
+    padding: 12px 14px;
     border-radius: var(--radius-sm);
+    background: linear-gradient(180deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.015) 100%);
+    border: 1px solid rgba(255,255,255,0.10);
+    border-top-color: rgba(255,255,255,0.18);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.08),
+      inset 0 -1px 0 rgba(0,0,0,0.35),
+      0 3px 0 rgba(0,0,0,0.28),
+      0 6px 16px rgba(0,0,0,0.30);
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .task-row:hover { background: rgba(255,255,255,0.03); }
+
+  /* Lane pramane left accent strip — badha task barabar dekhase */
+  #list-unassigned .task-row { border-left: 3px solid var(--ink-faint); }
+  #list-infra .task-row      { border-left: 3px solid var(--infra); }
+  #list-developers .task-row { border-left: 3px solid var(--dev); }
+
+  .task-row:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.16);
+    background: linear-gradient(180deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.10),
+      inset 0 -1px 0 rgba(0,0,0,0.35),
+      0 5px 0 rgba(0,0,0,0.28),
+      0 10px 22px rgba(0,0,0,0.35);
+  }
   .task-row.removing { opacity: 0; transform: translateX(16px) scale(0.97); }
   .task-row.removing .task-text { text-decoration: line-through; color: var(--ink-faint); }
+
+  /* Done task "pressed-in" 3D look */
+  .task-row.done {
+    background: linear-gradient(180deg, rgba(0,0,0,0.20), rgba(0,0,0,0.10));
+    border-color: rgba(255,255,255,0.05);
+    border-top-color: rgba(255,255,255,0.07);
+    box-shadow:
+      inset 0 2px 6px rgba(0,0,0,0.45),
+      inset 0 1px 0 rgba(0,0,0,0.30);
+    opacity: 0.8;
+  }
+  .task-row.done:hover { transform: none; }
 
   .task-text { flex: 1; font-size: 14px; line-height: 1.5; word-break: break-word; color: var(--ink); }
   .task-text.done { text-decoration: line-through; color: var(--ink-faint); }
@@ -605,7 +654,7 @@
     .tab { padding: 12px 10px; font-size: 12px; gap: 6px; }
     .tab .count-badge { font-size: 10px; padding: 2px 6px; }
 
-    .task-row { padding: 12px 4px; gap: 8px; flex-wrap: wrap; }
+    .task-row { padding: 12px 10px; gap: 8px; flex-wrap: wrap; }
     .task-text { font-size: 14px; flex: 1 1 100%; }
     .task-meta { font-size: 10px; margin-right: auto; }
 
@@ -622,13 +671,13 @@
   @media (prefers-reduced-motion: reduce) {
     .dot { animation: none; }
     .task-row, .lane-count, .tab, .add-btn, .done-btn, .icon-btn { transition: none; }
+    .task-row { animation: none; }
   }
 
   @keyframes slideIn {
     from { opacity: 0; transform: translateY(-8px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  .task-row { animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
 </style>
 </head>
 <body>
