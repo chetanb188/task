@@ -4,8 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Task Queue</title>
-<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAADt0lEQVR4nO3dPa4bZRSA4QliBalSpKJkD3QpKbIWCtqIloK1UKSkYw+UrIXCkmXdHyfxa893Bj1P62KO9L0+Y19d22/evnu/wa2+Wz0AxyYgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCT/Aa6MyVLUr14jAAAAAElFTkSuQmCC">
-<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAADt0lEQVR4nO3dPa4bZRSA4QliBalSpKJkD3QpKbIWCtqIloK1UKSkYw+UrIXCkmXdHyfxa893Bj1P62KO9L0+Y19d22/evnu/wa2+Wz0AxyYgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCT/Aa6MyVLUr14jAAAAAElFTkSuQmCC">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAADt0lEQVR4nO3dPa4bZRSA4QliBalSpKJkD3QpKbIWCtqIloK1UKSkYw+UrIXCkmXdHyfxa893Bj1P62KO9L0+Y19d22/evnu/wa2+Wz0AxyYgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCT/Aa6MyVLUr14jAAAAAElFTkSuQmCC">
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAADt0lEQVR4nO3dPa4bZRSA4QliBalSpKJkD3QpKbIWCtqIloK1UKSkYw+UrIXCkmXdHyfxa893Bj1P62KO9L0+Y19d22/evnu/wa2+Wz0AxyYgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCT/Aa6MyVLUr14jAAAAAElFTkSuQmCC">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Task Queue">
@@ -359,6 +359,7 @@
   .task-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 
   .task-row {
+    position: relative;
     display: flex;
     align-items: center;
     flex-wrap: wrap;
@@ -377,7 +378,7 @@
     animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Lane pramane left accent strip — badha task barabar dekhase */
+  /* Lane pramane left accent strip */
   #list-unassigned .task-row { border-left: 3px solid var(--ink-faint); }
   #list-infra .task-row      { border-left: 3px solid var(--infra); }
   #list-developers .task-row { border-left: 3px solid var(--dev); }
@@ -406,6 +407,38 @@
     opacity: 0.8;
   }
   .task-row.done:hover { transform: none; }
+
+  /* --- WhatsApp-style new task arrival: shake + green glow --- */
+  .task-row.new-task {
+    animation: newTaskShake 0.7s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  }
+  .task-row.new-task::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: calc(var(--radius-sm) + 3px);
+    border: 2px solid rgba(0, 212, 170, 0.75);
+    box-shadow: 0 0 16px rgba(0, 212, 170, 0.35);
+    pointer-events: none;
+    animation: glowFade 1.4s ease-out forwards;
+  }
+
+  @keyframes newTaskShake {
+    0%   { opacity: 0; transform: translateX(-16px) scale(0.96); }
+    12%  { opacity: 1; transform: translateX(10px) scale(1.02); }
+    26%  { transform: translateX(-8px) scale(1); }
+    40%  { transform: translateX(7px); }
+    54%  { transform: translateX(-5px); }
+    68%  { transform: translateX(3px); }
+    82%  { transform: translateX(-2px); }
+    100% { transform: translateX(0); }
+  }
+
+  @keyframes glowFade {
+    0%   { opacity: 0; }
+    20%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
 
   .task-text { flex: 1; font-size: 14px; line-height: 1.5; word-break: break-word; color: var(--ink); }
   .task-text.done { text-decoration: line-through; color: var(--ink-faint); }
@@ -672,6 +705,8 @@
     .dot { animation: none; }
     .task-row, .lane-count, .tab, .add-btn, .done-btn, .icon-btn { transition: none; }
     .task-row { animation: none; }
+    .task-row.new-task { animation: none; }
+    .task-row.new-task::after { animation: none; opacity: 0; }
   }
 
   @keyframes slideIn {
@@ -780,6 +815,11 @@
     let pendingImage = null;
     let pendingFile = null;
 
+    // --- New task notification state ---
+    let initialSyncDone = false;
+    let incomingNewIds = [];
+    let titleTimer = null;
+
     function formatBytes(bytes) {
       if (!bytes) return '0 B';
       const k = 1024;
@@ -833,6 +873,58 @@
       const b = document.getElementById('errorBanner');
       b.textContent = msg;
       b.classList.add('show');
+    }
+
+    // --- WhatsApp-style notification: sound + vibrate + title blink ---
+    function playNotifySound() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        if (ctx.state === 'suspended') { ctx.resume().catch(function(){}); }
+        const now = ctx.currentTime;
+        // WhatsApp jevi "ding-ding" — be notes
+        [[988, 0], [1319, 0.15]].forEach(function(pair) {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = 'sine';
+          o.frequency.value = pair[0];
+          g.gain.setValueAtTime(0.0001, now + pair[1]);
+          g.gain.exponentialRampToValueAtTime(0.22, now + pair[1] + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + pair[1] + 0.35);
+          o.connect(g); g.connect(ctx.destination);
+          o.start(now + pair[1]);
+          o.stop(now + pair[1] + 0.4);
+        });
+        setTimeout(function() { ctx.close().catch(function(){}); }, 1200);
+      } catch (e) {}
+    }
+
+    function flashTitle(count) {
+      if (titleTimer) clearInterval(titleTimer);
+      let toggle = false;
+      const msg = '🔔 ' + count + ' new task' + (count > 1 ? 's' : '') + '!';
+      const blink = function() {
+        document.title = toggle ? 'Task Queue' : msg;
+        toggle = !toggle;
+      };
+      blink();
+      titleTimer = setInterval(blink, 1000);
+      const stop = function() {
+        if (titleTimer) { clearInterval(titleTimer); titleTimer = null; }
+        document.title = 'Task Queue';
+      };
+      setTimeout(stop, 8000);
+      window.addEventListener('focus', stop, { once: true });
+    }
+
+    function notifyNewTasks(ids) {
+      incomingNewIds = incomingNewIds.concat(ids);
+      playNotifySound();
+      if (navigator.vibrate) {
+        try { navigator.vibrate([120, 60, 120]); } catch (e) {}
+      }
+      flashTitle(ids.length);
     }
 
     function compressImage(file, maxW, quality) {
@@ -991,7 +1083,20 @@
             fbRef.set(obj);
             return;
           }
-          tasks = remote ? Object.keys(remote).map(k => remote[k]).filter(Boolean) : [];
+          const remoteTasks = remote ? Object.keys(remote).map(k => remote[k]).filter(Boolean) : [];
+
+          // Nava remote tasks detect karo (pehli sync par nahi — pachi j)
+          if (!initialSyncDone) {
+            initialSyncDone = true;
+          } else {
+            const currentIds = new Set(tasks.map(t => t.id));
+            const newIds = remoteTasks
+              .filter(t => t && t.id && !currentIds.has(t.id))
+              .map(t => t.id);
+            if (newIds.length) notifyNewTasks(newIds);
+          }
+
+          tasks = remoteTasks;
           storageSet(STORAGE_KEY, JSON.stringify(tasks));
           render();
           setSyncStatus('connected', 'Live');
@@ -1111,7 +1216,7 @@
       }
     }
 
-    function taskRowHtml(t, cat) {
+    function taskRowHtml(t, cat, isNew) {
       if (editingId === t.id) {
         return '<li class="task-row editing" data-id="' + t.id + '">' +
           '<input type="text" class="edit-input" value="' + escapeHtml(t.text) + '" />' +
@@ -1145,7 +1250,7 @@
         }
         return '<a class="task-file" href="' + f.data + '" download="' + escapeHtml(name) + '" target="_blank">' + filePreviewLabel(name, type) + ' ' + escapeHtml(name) + ' (' + formatBytes(f.size) + ')</a>';
       })();
-      return '<li class="task-row' + (t.done ? ' done' : '') + '" data-id="' + t.id + '">' +
+      return '<li class="task-row' + (t.done ? ' done' : '') + (isNew ? ' new-task' : '') + '" data-id="' + t.id + '">' +
         '<div class="task-text' + (t.done ? ' done' : '') + '">' + escapeHtml(t.text) + '</div>' +
         attachHtml +
         '<div class="task-meta">' + formatTime(t.createdAt) + '</div>' +
@@ -1156,6 +1261,8 @@
     }
 
     function render() {
+      const shakeIds = incomingNewIds;
+      incomingNewIds = [];
       ['unassigned', 'infra', 'developers'].forEach(cat => {
         const items = tasks
           .filter(t => t.category === cat)
@@ -1176,7 +1283,7 @@
           list.innerHTML = '<li class="empty">' + (cat === 'unassigned' ? 'Koi unassigned task nathi.' : 'Nothing pending in ' + (cat === 'infra' ? 'Infra' : 'Developers') + '.') + '</li>';
           return;
         }
-        list.innerHTML = items.map(t => taskRowHtml(t, cat)).join('');
+        list.innerHTML = items.map(t => taskRowHtml(t, cat, shakeIds.indexOf(t.id) !== -1)).join('');
       });
 
       document.querySelectorAll('.done-btn').forEach(btn => { btn.onclick = () => toggleDone(btn.dataset.id); });
