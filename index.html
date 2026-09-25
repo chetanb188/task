@@ -81,7 +81,6 @@
 
   .app { max-width: 920px; margin: 0 auto; position: relative; z-index: 1; }
 
-  /* iPhone vibrate no alternative — aakhi screen shake */
   .app.shake-screen {
     animation: screenShake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97);
   }
@@ -190,7 +189,6 @@
   }
   .error-banner.show { display: block; }
 
-  /* WhatsApp-style top toast banner */
   .new-task-toast {
     position: fixed;
     top: calc(env(safe-area-inset-top, 0px) + 12px);
@@ -230,6 +228,32 @@
     text-overflow: ellipsis;
     max-width: 320px;
   }
+
+  /* Push send status (niche dekhay — test mate) */
+  .push-status {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+    left: 50%;
+    transform: translateX(-50%) translateY(150%);
+    z-index: 10001;
+    background: rgba(10,14,23,0.95);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--ink);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-width: 92vw;
+    text-align: center;
+    pointer-events: none;
+  }
+  .push-status.show { transform: translateX(-50%) translateY(0); }
+  .push-status.ok { border-color: rgba(0,212,170,0.6); color: var(--infra); }
+  .push-status.err { border-color: rgba(255,138,92,0.6); color: var(--dev); }
 
   .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
 
@@ -452,7 +476,6 @@
     animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Lane pramane left accent strip */
   #list-unassigned .task-row { border-left: 3px solid var(--ink-faint); }
   #list-infra .task-row      { border-left: 3px solid var(--infra); }
   #list-developers .task-row { border-left: 3px solid var(--dev); }
@@ -470,7 +493,6 @@
   .task-row.removing { opacity: 0; transform: translateX(16px) scale(0.97); }
   .task-row.removing .task-text { text-decoration: line-through; color: var(--ink-faint); }
 
-  /* Done task "pressed-in" 3D look */
   .task-row.done {
     background: linear-gradient(180deg, rgba(0,0,0,0.20), rgba(0,0,0,0.10));
     border-color: rgba(255,255,255,0.05);
@@ -482,7 +504,6 @@
   }
   .task-row.done:hover { transform: none; }
 
-  /* --- WhatsApp-style new task arrival: shake + green glow --- */
   .task-row.new-task {
     animation: newTaskShake 0.7s cubic-bezier(0.36, 0.07, 0.19, 0.97);
   }
@@ -795,12 +816,13 @@
     <header>
       <div class="header-left">
         <h1>Task Queue</h1>
-        <div class="sync-status" id="syncStatus" title="Click to configure sync">
+        <div class="sync-status" id="syncStatus" title="Sync status">
           <span class="sync-dot" id="syncDot"></span>
           <span id="syncLabel">Local</span>
         </div>
       </div>
       <div class="header-right">
+        <button class="bell-toggle" id="testPushBtn" title="Test notification moklo — screen par result dekhay" type="button">📨</button>
         <button class="bell-toggle" id="bellToggle" title="Notification sound ON/OFF" type="button">🔔</button>
         <div class="clock" id="clock"></div>
       </div>
@@ -886,33 +908,76 @@
     const STORAGE_KEY = 'daily-tasks';
 
     // ============================================================
-    // PUSH NOTIFICATION (ntfy.sh) — App band hoy TYARE PAN aavse!
-    //
-    // Setup:
-    // 1. iPhone/Android ma "ntfy" app install karo (App Store / Play Store)
-    // 2. ntfy app ma Subscribe karo → topic: (niche NTFY_TOPIC je che e)
-    // 3. Notifications allow karo
-    //
-    // IMPORTANT: Topic name secret rakho — koi pan aa topic par
-    // message mokli shake, etle random loko na lage evu rakho.
+    // PUSH NOTIFICATION (ntfy.sh)
+    // ntfy app ma EXACT aa topic subscribe karvanu:
+    //   taskq-6271f-f8k2p9x4
     // ============================================================
     const NTFY_TOPIC = 'taskq-6271f-f8k2p9x4';
 
+    // Push moklo — query param method (koi blocker ne preflight issue nathi)
     function pushNotify(title, message) {
-      try {
-        fetch('https://ntfy.sh', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            topic: NTFY_TOPIC,
-            title: title,
-            message: message,
-            priority: 4,   // high — lock screen par heads-up notification
-            tags: ['bell']
+      return new Promise(function(resolve) {
+        const url = 'https://ntfy.sh/' + NTFY_TOPIC +
+          '?title=' + encodeURIComponent(title) +
+          '&priority=high&tags=bell';
+        fetch(url, { method: 'POST', body: message })
+          .then(function(res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            resolve(true);
           })
-        }).catch(function() {});
-      } catch (e) {}
+          .catch(function(err) {
+            console.warn('ntfy push fail (method 1):', err);
+            // Fallback: JSON method
+            fetch('https://ntfy.sh', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                topic: NTFY_TOPIC,
+                title: title,
+                message: message,
+                priority: 4,
+                tags: ['bell']
+              })
+            })
+            .then(function(res) { resolve(res.ok); })
+            .catch(function(err2) {
+              console.warn('ntfy push fail (method 2):', err2);
+              resolve(false);
+            });
+          });
+      });
     }
+
+    // Screen par result batavo (test + debug mate)
+    function showPushStatus(ok, detail) {
+      let el = document.getElementById('pushStatus');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'pushStatus';
+        el.className = 'push-status';
+        document.body.appendChild(el);
+      }
+      el.textContent = detail;
+      el.classList.remove('ok', 'err');
+      if (ok === true) el.classList.add('ok');
+      if (ok === false) el.classList.add('err');
+      el.classList.add('show');
+      clearTimeout(el._t);
+      el._t = setTimeout(function() { el.classList.remove('show'); }, 5000);
+    }
+
+    // 📨 TEST BUTTON — aakha push flow nu test karo
+    document.getElementById('testPushBtn').addEventListener('click', function() {
+      showPushStatus(null, '📨 Test push moklavama aavyo…');
+      pushNotify('🧪 Test Notification', 'Aa test che — tamaru setup kaam kare che! ' + new Date().toLocaleTimeString())
+        .then(function(ok) {
+          if (ok) {
+            showPushStatus(true, '✅ Push server par GAYU! Have phone lock karo / ntfy app kholo');
+          } else {
+            showPushStatus(false, '❌ Push FAIL — internet / adblocker / content blocker check karo');
+          }
+        });
+    });
 
     let tasks = [];
     let activeLane = 'infra';
@@ -923,7 +988,6 @@
     let pendingImage = null;
     let pendingFile = null;
 
-    // --- In-page notification state ---
     let initialSyncDone = false;
     let incomingNewIds = [];
     let titleTimer = null;
@@ -985,8 +1049,6 @@
       b.textContent = msg;
       b.classList.add('show');
     }
-
-    // ============ In-page notification (page khullu hovu jaruri) ============
 
     function unlockAudio() {
       try {
@@ -1084,7 +1146,6 @@
       flashTitle(texts.length);
     }
 
-    // Bell toggle — sound on/off + unlock + test
     const bellBtn = document.getElementById('bellToggle');
     bellBtn.addEventListener('click', function() {
       soundEnabled = !soundEnabled;
@@ -1332,8 +1393,10 @@
       tasks.push(task);
       saveTasks();
       syncTask(task.id);
-      // PUSH: app band hoi tyare pan notification aavse (ntfy app thi)
-      pushNotify('📋 Navi Task', trimmed);
+      // PUSH notification (lock screen par aavse — app band hoy toy)
+      pushNotify('📋 Navi Task', trimmed).then(function(ok) {
+        if (!ok) console.warn('Push send nathi thayu');
+      });
       render();
     }
 
@@ -1343,7 +1406,6 @@
       t.category = category;
       saveTasks();
       syncTask(id);
-      // PUSH: assignment pan notify karo
       pushNotify('📌 Task Assigned', t.text + ' → ' + (category === 'infra' ? 'Infra' : 'Developers'));
       render();
     }
