@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Task Queue</title>
-<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAADt0lEQVR4nO3dPa4bZRSA4QliBalSpKJkD3QpKbIWCtqIloK1UKSkYw+UrIXCkmXdHyfxa893Bj1P62KO9L0+Y19d22/evnu/wa2+Wz0AxyYgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCT/Aa6MyVLUr14jAAAAAElFTkSuQmCC">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAADt0lEQVR4nO3dPa4bZRSA4QliBalSpKJkD3QpKbIWCtqIloK1UKSkYw+UrIXCkmXdHyfxa893Bj1P62KO9L0+Y19d22/evnu/wa2+Wz0AxyYgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCT/Aa6MyVLUr14jAAAAAElFTkSuQmCC">
 <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAADt0lEQVR4nO3dPa4bZRSA4QliBalSpKJkD3QpKbIWCtqIloK1UKSkYw+UrIXCkmXdHyfxa893Bj1P62KO9L0+Y19d22/evnu/wa2+Wz0AxyYgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCT/Aa6MyVLUr14jAAAAAElFTkSuQmCC">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -801,7 +801,7 @@
         </div>
       </div>
       <div class="header-right">
-        <button class="bell-toggle" id="bellToggle" title="Notification sound ON/OFF — tap karo etle iPhone ma sound unlock thase" type="button">🔔</button>
+        <button class="bell-toggle" id="bellToggle" title="Notification sound ON/OFF" type="button">🔔</button>
         <div class="clock" id="clock"></div>
       </div>
     </header>
@@ -884,6 +884,36 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
   <script>
     const STORAGE_KEY = 'daily-tasks';
+
+    // ============================================================
+    // PUSH NOTIFICATION (ntfy.sh) — App band hoy TYARE PAN aavse!
+    //
+    // Setup:
+    // 1. iPhone/Android ma "ntfy" app install karo (App Store / Play Store)
+    // 2. ntfy app ma Subscribe karo → topic: (niche NTFY_TOPIC je che e)
+    // 3. Notifications allow karo
+    //
+    // IMPORTANT: Topic name secret rakho — koi pan aa topic par
+    // message mokli shake, etle random loko na lage evu rakho.
+    // ============================================================
+    const NTFY_TOPIC = 'taskq-6271f-f8k2p9x4';
+
+    function pushNotify(title, message) {
+      try {
+        fetch('https://ntfy.sh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topic: NTFY_TOPIC,
+            title: title,
+            message: message,
+            priority: 4,   // high — lock screen par heads-up notification
+            tags: ['bell']
+          })
+        }).catch(function() {});
+      } catch (e) {}
+    }
+
     let tasks = [];
     let activeLane = 'infra';
     let lastCounts = { unassigned: 0, infra: 0, developers: 0 };
@@ -893,7 +923,7 @@
     let pendingImage = null;
     let pendingFile = null;
 
-    // --- Notification state ---
+    // --- In-page notification state ---
     let initialSyncDone = false;
     let incomingNewIds = [];
     let titleTimer = null;
@@ -956,10 +986,8 @@
       b.classList.add('show');
     }
 
-    // ============ iPhone-friendly notification system ============
+    // ============ In-page notification (page khullu hovu jaruri) ============
 
-    // iOS rule: sound mate pehla USER TAP jaruri che.
-    // Etle pehla koi pan tap/click par audio context unlock kari laiye.
     function unlockAudio() {
       try {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -981,7 +1009,6 @@
         }
         const ctx = sharedAudioCtx;
         const now = ctx.currentTime;
-        // WhatsApp jevi "ding-ding" — be notes
         [[988, 0], [1319, 0.15]].forEach(function(pair) {
           const o = ctx.createOscillator();
           const g = ctx.createGain();
@@ -1015,7 +1042,6 @@
       window.addEventListener('focus', stop, { once: true });
     }
 
-    // WhatsApp-style top banner toast
     function showTaskToast(texts) {
       let toast = document.getElementById('newTaskToast');
       if (!toast) {
@@ -1042,35 +1068,30 @@
       const texts = newTasks.map(t => t.text || '');
       incomingNewIds = incomingNewIds.concat(ids);
 
-      // Sound (iPhone par pehla tap thayu hoy to vagese)
       playNotifySound();
 
-      // Vibration: Android ma vibrate, iPhone ma screen shake
       if (navigator.vibrate) {
         try { navigator.vibrate([120, 60, 120]); } catch (e) {}
       } else {
         const app = document.getElementById('appRoot');
         app.classList.remove('shake-screen');
-        void app.offsetWidth; // animation restart
+        void app.offsetWidth;
         app.classList.add('shake-screen');
         setTimeout(function() { app.classList.remove('shake-screen'); }, 700);
       }
 
-      // Toast banner
       showTaskToast(texts);
-
-      // Tab title blink
       flashTitle(texts.length);
     }
 
-    // Bell toggle — tap karvate sound enable + unlock + test
+    // Bell toggle — sound on/off + unlock + test
     const bellBtn = document.getElementById('bellToggle');
     bellBtn.addEventListener('click', function() {
       soundEnabled = !soundEnabled;
       bellBtn.classList.toggle('off', !soundEnabled);
       if (soundEnabled) {
         unlockAudio();
-        setTimeout(playNotifySound, 60); // test sound
+        setTimeout(playNotifySound, 60);
       }
     });
 
@@ -1232,7 +1253,6 @@
           }
           const remoteTasks = remote ? Object.keys(remote).map(k => remote[k]).filter(Boolean) : [];
 
-          // Nava remote tasks detect karo (pehli sync par nahi — pachi j)
           if (!initialSyncDone) {
             initialSyncDone = true;
           } else {
@@ -1312,6 +1332,8 @@
       tasks.push(task);
       saveTasks();
       syncTask(task.id);
+      // PUSH: app band hoi tyare pan notification aavse (ntfy app thi)
+      pushNotify('📋 Navi Task', trimmed);
       render();
     }
 
@@ -1321,6 +1343,8 @@
       t.category = category;
       saveTasks();
       syncTask(id);
+      // PUSH: assignment pan notify karo
+      pushNotify('📌 Task Assigned', t.text + ' → ' + (category === 'infra' ? 'Infra' : 'Developers'));
       render();
     }
 
