@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Task Queue</title>
-<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAADt0lEQVR4nO3dPa4bZRSA4QliBalSpKJkD3QpKbIWCtqIloK1UKSkYw+UrIXCkmXdHyfxa893Bj1P62KO9L0+Y19d22/evnu/wa2+Wz0AxyYgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCT/Aa6MyVLUr14jAAAAAElFTkSuQmCC">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAADt0lEQVR4nO3dPa4bZRSA4QliBalSpKJkD3QpKbIWCtqIloK1UKSkYw+UrIXCkmXdHyfxa893Bj1P62KO9L0+Y19d22/evnu/wa2+Wz0AxyYgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCT/Aa6MyVLUr14jAAAAAElFTkSuQmCC">
 <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAADt0lEQVR4nO3dPa4bZRSA4QliBalSpKJkD3QpKbIWCtqIloK1UKSkYw+UrIXCkmXdHyfxa893Bj1P62KO9L0+Y19d22/evnu/wa2+Wz0AxyYgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCQCIhEQiYBIBEQiIBIBkQiIREAkAiIREImASAREIiASAZEIiERAJAIiERCJgEgERCIgEgGRCIhEQCT/Aa6MyVLUr14jAAAAAElFTkSuQmCC">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -229,7 +229,6 @@
     max-width: 320px;
   }
 
-  /* Push send status (niche dekhay — test mate) */
   .push-status {
     position: fixed;
     bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
@@ -822,7 +821,7 @@
         </div>
       </div>
       <div class="header-right">
-        <button class="bell-toggle" id="testPushBtn" title="Test notification moklo — screen par result dekhay" type="button">📨</button>
+        <button class="bell-toggle" id="testPushBtn" title="Test notification moklo" type="button">📨</button>
         <button class="bell-toggle" id="bellToggle" title="Notification sound ON/OFF" type="button">🔔</button>
         <div class="clock" id="clock"></div>
       </div>
@@ -911,15 +910,15 @@
     // PUSH NOTIFICATION (ntfy.sh)
     // ntfy app ma EXACT aa topic subscribe karvanu:
     //   taskq-6271f-f8k2p9x4
+    // cache=1h → message 1 kalak sudhi server par rahe, pachi auto delete
     // ============================================================
     const NTFY_TOPIC = 'taskq-6271f-f8k2p9x4';
 
-    // Push moklo — query param method (koi blocker ne preflight issue nathi)
     function pushNotify(title, message) {
       return new Promise(function(resolve) {
         const url = 'https://ntfy.sh/' + NTFY_TOPIC +
           '?title=' + encodeURIComponent(title) +
-          '&priority=high&tags=bell';
+          '&priority=high&tags=bell&cache=1h';
         fetch(url, { method: 'POST', body: message })
           .then(function(res) {
             if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -927,7 +926,6 @@
           })
           .catch(function(err) {
             console.warn('ntfy push fail (method 1):', err);
-            // Fallback: JSON method
             fetch('https://ntfy.sh', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -936,7 +934,8 @@
                 title: title,
                 message: message,
                 priority: 4,
-                tags: ['bell']
+                tags: ['bell'],
+                cache: '1m'
               })
             })
             .then(function(res) { resolve(res.ok); })
@@ -948,7 +947,6 @@
       });
     }
 
-    // Screen par result batavo (test + debug mate)
     function showPushStatus(ok, detail) {
       let el = document.getElementById('pushStatus');
       if (!el) {
@@ -966,7 +964,6 @@
       el._t = setTimeout(function() { el.classList.remove('show'); }, 5000);
     }
 
-    // 📨 TEST BUTTON — aakha push flow nu test karo
     document.getElementById('testPushBtn').addEventListener('click', function() {
       showPushStatus(null, '📨 Test push moklavama aavyo…');
       pushNotify('🧪 Test Notification', 'Aa test che — tamaru setup kaam kare che! ' + new Date().toLocaleTimeString())
@@ -1393,7 +1390,6 @@
       tasks.push(task);
       saveTasks();
       syncTask(task.id);
-      // PUSH notification (lock screen par aavse — app band hoy toy)
       pushNotify('📋 Navi Task', trimmed).then(function(ok) {
         if (!ok) console.warn('Push send nathi thayu');
       });
