@@ -190,7 +190,7 @@
   }
   .error-banner.show { display: block; }
 
-  /* WhatsApp-style top toast banner — naam RED ma */
+  /* WhatsApp-style top toast banner — naam RED ma, fakat naam (navi task label nahi) */
   .new-task-toast {
     position: fixed;
     top: calc(env(safe-area-inset-top, 0px) + 12px);
@@ -927,10 +927,7 @@
     //   tq-9f4k2
     //
     // IMPORTANT: cache=no AHIYA NA RAKHVAAY — iOS par notification
-    // aavti j nathi (iOS app message server cache mathi j fetch kare
-    // che). Default cache rakhyu che (12h), pan ntfy app ma
-    // "Auto delete messages: After 1 hour" setting muki do etle
-    // app ma 1 kalak pachi message gayab thai jase.
+    // aavti j nathi. Default cache rakhyu che (12h).
     // ============================================================
     const NTFY_TOPIC = 'tq-9f4k2';
 
@@ -985,7 +982,7 @@
     document.getElementById('testPushBtn').addEventListener('click', function() {
       const who = getMyName();
       showPushStatus(null, '📨 Test push moklavama aavyo…');
-      pushNotify(who ? who + ' • Test' : 'Test Notification', 'Aa test che — tamaru setup kaam kare che! ' + new Date().toLocaleTimeString())
+      pushNotify(who ? who + ':' : 'Test Notification', 'Aa test che — tamaru setup kaam kare che! ' + new Date().toLocaleTimeString())
         .then(function(ok) {
           if (ok) {
             showPushStatus(true, '✅ Push server par GAYU! Have phone lock karo / ntfy app kholo');
@@ -1142,7 +1139,7 @@
       window.addEventListener('focus', stop, { once: true });
     }
 
-    // Toast banner — naam RED ma dekhay
+    // Toast banner — fakat naam (RED ma), "Navi Task" label kadhi didhu
     function showTaskToast(items) {
       let toast = document.getElementById('newTaskToast');
       if (!toast) {
@@ -1160,10 +1157,10 @@
       const first = items[0];
       const titleEl = toast.querySelector('.toast-title');
       if (first.name) {
-        titleEl.innerHTML = '<span class="toast-name">' + escapeHtml(first.name) + '</span> · Navi Task' +
+        titleEl.innerHTML = '<span class="toast-name">' + escapeHtml(first.name) + '</span>' +
           (items.length > 1 ? ' (+' + (items.length - 1) + ' more)' : '');
       } else {
-        titleEl.textContent = 'Navi Task' + (items.length > 1 ? ' (+' + (items.length - 1) + ' more)' : '');
+        titleEl.textContent = items.length > 1 ? '+1 more' : '';
       }
       toast.querySelector('.toast-text').textContent = first.text || '';
       toast.classList.add('show');
@@ -1441,7 +1438,8 @@
       tasks.push(task);
       saveTasks();
       syncTask(task.id);
-      pushNotify(who ? who + ' • Navi Task' : 'Navi Task', trimmed).then(function(ok) {
+      // Naam + fakat ":" — "Navi Task" words kadhi didha
+      pushNotify(who ? who + ':' : 'Navi Task', trimmed).then(function(ok) {
         if (!ok) console.warn('Push send nathi thayu');
       });
       render();
@@ -1454,7 +1452,7 @@
       t.category = category;
       saveTasks();
       syncTask(id);
-      pushNotify(who ? who + ' • Task Assigned' : 'Task Assigned', t.text + ' → ' + (category === 'infra' ? 'Infra' : 'Developers'));
+      pushNotify(who ? who + ': Assigned' : 'Task Assigned', t.text + ' → ' + (category === 'infra' ? 'Infra' : 'Developers'));
       render();
     }
 
