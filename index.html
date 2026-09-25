@@ -1390,7 +1390,7 @@
       tasks.push(task);
       saveTasks();
       syncTask(task.id);
-      pushNotify('📋 Navi Task', trimmed).then(function(ok) {
+      pushNotify('Navi Task', trimmed).then(function(ok) {
         if (!ok) console.warn('Push send nathi thayu');
       });
       render();
