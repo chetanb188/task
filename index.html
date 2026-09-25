@@ -81,6 +81,20 @@
 
   .app { max-width: 920px; margin: 0 auto; position: relative; z-index: 1; }
 
+  /* iPhone vibrate no alternative — aakhi screen shake */
+  .app.shake-screen {
+    animation: screenShake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  }
+  @keyframes screenShake {
+    0%, 100% { transform: translateX(0); }
+    15% { transform: translateX(-10px); }
+    30% { transform: translateX(9px); }
+    45% { transform: translateX(-7px); }
+    60% { transform: translateX(5px); }
+    75% { transform: translateX(-3px); }
+    90% { transform: translateX(2px); }
+  }
+
   header {
     display: flex;
     align-items: center;
@@ -103,6 +117,25 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
+  .header-right { display: flex; align-items: center; gap: 8px; }
+
+  .bell-toggle {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--glass);
+    border: 1px solid var(--glass-border);
+    cursor: pointer;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+  }
+  .bell-toggle.off { opacity: 0.35; filter: grayscale(1); }
+  .bell-toggle:active { transform: scale(0.9); }
 
   .sync-status {
     display: flex;
@@ -156,6 +189,47 @@
     -webkit-backdrop-filter: blur(12px);
   }
   .error-banner.show { display: block; }
+
+  /* WhatsApp-style top toast banner */
+  .new-task-toast {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    left: 50%;
+    transform: translateX(-50%) translateY(-150%);
+    z-index: 10000;
+    max-width: min(92vw, 420px);
+    background: rgba(10, 14, 23, 0.92);
+    border: 1px solid rgba(0,212,170,0.5);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5), 0 0 20px rgba(0,212,170,0.2);
+    border-radius: 14px;
+    padding: 12px 16px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+  }
+  .new-task-toast.show { transform: translateX(-50%) translateY(0); }
+  .new-task-toast .toast-icon { font-size: 20px; flex-shrink: 0; }
+  .new-task-toast .toast-body { min-width: 0; }
+  .new-task-toast .toast-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--infra);
+    text-transform: uppercase;
+  }
+  .new-task-toast .toast-text {
+    font-size: 13px;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 320px;
+  }
 
   .tabs { display: flex; gap: 8px; margin-bottom: 18px; }
 
@@ -707,6 +781,7 @@
     .task-row { animation: none; }
     .task-row.new-task { animation: none; }
     .task-row.new-task::after { animation: none; opacity: 0; }
+    .app.shake-screen { animation: none; }
   }
 
   @keyframes slideIn {
@@ -716,7 +791,7 @@
 </style>
 </head>
 <body>
-  <div class="app">
+  <div class="app" id="appRoot">
     <header>
       <div class="header-left">
         <h1>Task Queue</h1>
@@ -725,7 +800,10 @@
           <span id="syncLabel">Local</span>
         </div>
       </div>
-      <div class="clock" id="clock"></div>
+      <div class="header-right">
+        <button class="bell-toggle" id="bellToggle" title="Notification sound ON/OFF — tap karo etle iPhone ma sound unlock thase" type="button">🔔</button>
+        <div class="clock" id="clock"></div>
+      </div>
     </header>
 
     <div class="error-banner" id="errorBanner"></div>
@@ -815,10 +893,13 @@
     let pendingImage = null;
     let pendingFile = null;
 
-    // --- New task notification state ---
+    // --- Notification state ---
     let initialSyncDone = false;
     let incomingNewIds = [];
     let titleTimer = null;
+    let toastTimer = null;
+    let sharedAudioCtx = null;
+    let soundEnabled = true;
 
     function formatBytes(bytes) {
       if (!bytes) return '0 B';
@@ -875,13 +956,30 @@
       b.classList.add('show');
     }
 
-    // --- WhatsApp-style notification: sound + vibrate + title blink ---
-    function playNotifySound() {
+    // ============ iPhone-friendly notification system ============
+
+    // iOS rule: sound mate pehla USER TAP jaruri che.
+    // Etle pehla koi pan tap/click par audio context unlock kari laiye.
+    function unlockAudio() {
       try {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (!AudioCtx) return;
-        const ctx = new AudioCtx();
-        if (ctx.state === 'suspended') { ctx.resume().catch(function(){}); }
+        if (!sharedAudioCtx) sharedAudioCtx = new AudioCtx();
+        if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume().catch(function(){});
+      } catch (e) {}
+    }
+    document.addEventListener('touchend', unlockAudio, { passive: true });
+    document.addEventListener('click', unlockAudio);
+
+    function playNotifySound() {
+      if (!soundEnabled) return;
+      try {
+        unlockAudio();
+        if (!sharedAudioCtx) return;
+        if (sharedAudioCtx.state === 'suspended') {
+          sharedAudioCtx.resume().catch(function(){});
+        }
+        const ctx = sharedAudioCtx;
         const now = ctx.currentTime;
         // WhatsApp jevi "ding-ding" — be notes
         [[988, 0], [1319, 0.15]].forEach(function(pair) {
@@ -890,13 +988,12 @@
           o.type = 'sine';
           o.frequency.value = pair[0];
           g.gain.setValueAtTime(0.0001, now + pair[1]);
-          g.gain.exponentialRampToValueAtTime(0.22, now + pair[1] + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.25, now + pair[1] + 0.02);
           g.gain.exponentialRampToValueAtTime(0.0001, now + pair[1] + 0.35);
           o.connect(g); g.connect(ctx.destination);
           o.start(now + pair[1]);
           o.stop(now + pair[1] + 0.4);
         });
-        setTimeout(function() { ctx.close().catch(function(){}); }, 1200);
       } catch (e) {}
     }
 
@@ -918,14 +1015,64 @@
       window.addEventListener('focus', stop, { once: true });
     }
 
-    function notifyNewTasks(ids) {
+    // WhatsApp-style top banner toast
+    function showTaskToast(texts) {
+      let toast = document.getElementById('newTaskToast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'newTaskToast';
+        toast.className = 'new-task-toast';
+        toast.innerHTML = '<span class="toast-icon">💬</span>' +
+          '<div class="toast-body">' +
+            '<div class="toast-title">New Task</div>' +
+            '<div class="toast-text"></div>' +
+          '</div>';
+        toast.addEventListener('click', function() { toast.classList.remove('show'); });
+        document.body.appendChild(toast);
+      }
+      toast.querySelector('.toast-text').textContent =
+        texts[0] + (texts.length > 1 ? '  (+' + (texts.length - 1) + ' more)' : '');
+      toast.classList.add('show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 5000);
+    }
+
+    function notifyNewTasks(newTasks) {
+      const ids = newTasks.map(t => t.id);
+      const texts = newTasks.map(t => t.text || '');
       incomingNewIds = incomingNewIds.concat(ids);
+
+      // Sound (iPhone par pehla tap thayu hoy to vagese)
       playNotifySound();
+
+      // Vibration: Android ma vibrate, iPhone ma screen shake
       if (navigator.vibrate) {
         try { navigator.vibrate([120, 60, 120]); } catch (e) {}
+      } else {
+        const app = document.getElementById('appRoot');
+        app.classList.remove('shake-screen');
+        void app.offsetWidth; // animation restart
+        app.classList.add('shake-screen');
+        setTimeout(function() { app.classList.remove('shake-screen'); }, 700);
       }
-      flashTitle(ids.length);
+
+      // Toast banner
+      showTaskToast(texts);
+
+      // Tab title blink
+      flashTitle(texts.length);
     }
+
+    // Bell toggle — tap karvate sound enable + unlock + test
+    const bellBtn = document.getElementById('bellToggle');
+    bellBtn.addEventListener('click', function() {
+      soundEnabled = !soundEnabled;
+      bellBtn.classList.toggle('off', !soundEnabled);
+      if (soundEnabled) {
+        unlockAudio();
+        setTimeout(playNotifySound, 60); // test sound
+      }
+    });
 
     function compressImage(file, maxW, quality) {
       return new Promise((resolve, reject) => {
@@ -1090,10 +1237,8 @@
             initialSyncDone = true;
           } else {
             const currentIds = new Set(tasks.map(t => t.id));
-            const newIds = remoteTasks
-              .filter(t => t && t.id && !currentIds.has(t.id))
-              .map(t => t.id);
-            if (newIds.length) notifyNewTasks(newIds);
+            const newTasks = remoteTasks.filter(t => t && t.id && !currentIds.has(t.id));
+            if (newTasks.length) notifyNewTasks(newTasks);
           }
 
           tasks = remoteTasks;
