@@ -190,7 +190,7 @@
   }
   .error-banner.show { display: block; }
 
-  /* WhatsApp-style top toast banner — naam RED ma, fakat naam (navi task label nahi) */
+  /* WhatsApp-style top toast banner — fakat naam RED ma */
   .new-task-toast {
     position: fixed;
     top: calc(env(safe-area-inset-top, 0px) + 12px);
@@ -568,13 +568,15 @@
     border: none;
     cursor: pointer;
     font-size: 13px;
+    color: var(--ink);
     display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
     transition: all 0.2s ease;
   }
-  .task-row:hover .icon-btn { opacity: 0.5; }
+  .task-row:hover .icon-btn { opacity: 1; }
+  .task-row:hover .icon-btn.copy-btn { color: var(--infra); }
   .icon-btn:hover { opacity: 1 !important; background: rgba(255,255,255,0.08); }
 
   .done-btn {
@@ -799,7 +801,7 @@
     .task-text { font-size: 14px; flex: 1 1 100%; }
     .task-meta { font-size: 10px; margin-right: auto; }
 
-    .icon-btn { opacity: 0.6; width: 32px; height: 32px; font-size: 14px; }
+    .icon-btn { opacity: 0.8; width: 32px; height: 32px; font-size: 14px; color: var(--ink); }
     .done-btn { width: 36px; height: 36px; font-size: 15px; }
 
     .assign-btn { padding: 8px 14px; font-size: 12px; }
@@ -1139,7 +1141,7 @@
       window.addEventListener('focus', stop, { once: true });
     }
 
-    // Toast banner — fakat naam (RED ma), "Navi Task" label kadhi didhu
+    // Toast banner — fakat naam (RED ma)
     function showTaskToast(items) {
       let toast = document.getElementById('newTaskToast');
       if (!toast) {
@@ -1438,7 +1440,6 @@
       tasks.push(task);
       saveTasks();
       syncTask(task.id);
-      // Naam + fakat ":" — "Navi Task" words kadhi didha
       pushNotify(who ? who + ':' : 'Navi Task', trimmed).then(function(ok) {
         if (!ok) console.warn('Push send nathi thayu');
       });
@@ -1463,6 +1464,36 @@
       saveTasks();
       syncTask(id);
       render();
+    }
+
+    function copyTaskText(id) {
+      const t = tasks.find(x => x.id === id);
+      if (!t) return;
+      const done = function(ok) {
+        showPushStatus(ok, ok ? '📋 Copy thai gayu!' : '❌ Copy nathi thayu');
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(t.text).then(function() { done(true); }).catch(function() {
+          fallbackCopy(t.text, done);
+        });
+      } else {
+        fallbackCopy(t.text, done);
+      }
+    }
+
+    function fallbackCopy(text, cb) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        cb(ok);
+      } catch (e) { cb(false); }
     }
 
     function startEdit(id) { editingId = id; render(); }
@@ -1533,6 +1564,7 @@
         attachHtml +
         '<div class="task-meta">' + ownerHtml + formatTime(t.createdAt) + '</div>' +
         '<div class="row-actions">' + assignHtml +
+          '<button class="icon-btn copy-btn" data-id="' + t.id + '" aria-label="Copy" type="button">⧉</button>' +
           '<button class="icon-btn edit-btn" data-id="' + t.id + '" aria-label="Edit" type="button">✏️</button>' +
           '<button class="icon-btn delete-btn" data-id="' + t.id + '" aria-label="Delete" type="button">🗑️</button>' +
         '</div></li>';
@@ -1568,6 +1600,7 @@
       document.querySelectorAll('.assign-btn').forEach(btn => { btn.onclick = () => assignTask(btn.dataset.id, btn.dataset.cat); });
       document.querySelectorAll('.edit-btn').forEach(btn => { btn.onclick = () => startEdit(btn.dataset.id); });
       document.querySelectorAll('.delete-btn').forEach(btn => { btn.onclick = () => deleteTask(btn.dataset.id); });
+      document.querySelectorAll('.copy-btn').forEach(btn => { btn.onclick = () => copyTaskText(btn.dataset.id); });
       document.querySelectorAll('.mini-btn.save').forEach(btn => {
         const li = btn.closest('.task-row');
         const input = li.querySelector('.edit-input');
